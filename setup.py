@@ -21,7 +21,7 @@ setuptools.setup(
         'Operating System :: OS Independent',
     ],
     package_dir={'': '.'},
-    packages=['telebot_views'],
+    packages=['telebot_views', 'telebot_views.models'],
     package_data={},
     python_requires='>=3.8',
     install_requires=[
