@@ -1,0 +1,5 @@
+black==23.3.0
+isort==5.12.0
+pylint==2.17.4
+pyTelegramBotAPI==4.10.0
+telebot-models @ https://github.com/Appuxif/telebot_models/archive/refs/tags/0.0.2.tar.gz#sha256=04c010c7b57fb4c34529bde64a4f3e92e243f50db33e3229f5b864fd1b565006
