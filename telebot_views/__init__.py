@@ -19,6 +19,9 @@ def init(tele_bot: AsyncTeleBot, routes: list[Route]):
 
     @tele_bot.message_handler()
     async def message_handler(msg: Message):
+        if msg.from_user.id == tele_bot.token.split(':', 1)[0]:
+            return
+
         request = Request(msg=msg)
         await ViewDispatcher(request=request).dispatch()
         return
