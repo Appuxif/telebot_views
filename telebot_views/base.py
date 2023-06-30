@@ -7,7 +7,7 @@ from telebot_models.models import BaseModelManager, T
 
 from telebot_views import bot
 from telebot_views.models import UserMainState, UserModel, UserStateCb
-from telebot_views.service import get_user_for_message
+from telebot_views.services.users import get_user_for_message
 
 
 class Route:
