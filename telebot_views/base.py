@@ -93,6 +93,17 @@ class BaseMessageSender:
         if not text:
             return
 
+        if user.state.messages_to_delete:
+            next_messages_to_delete = set(self.view.user_states.next_user_state.messages_to_delete)
+            next_messages_to_delete -= set(user.state.messages_to_delete)
+            await asyncio.gather(
+                *(bot.bot.delete_message(chat_id, message_id) for chat_id, message_id in user.state.messages_to_delete),
+                return_exceptions=True,
+            )
+            self.view.user_states.next_user_state.messages_to_delete.clear()
+            self.view.user_states.next_user_state.messages_to_delete.extend(list(next_messages_to_delete))
+            user.state.messages_to_delete.clear()
+
         if self.view.edit_keyboard and user.keyboard_id is not None:
             try:
                 await bot.bot.edit_message_text(text, message.chat.id, user.keyboard_id, reply_markup=markup)
@@ -113,16 +124,6 @@ class BaseMessageSender:
                         user.keyboard_id = None
                     else:
                         raise
-
-            if user.state.messages_to_delete:
-                await asyncio.gather(
-                    *(
-                        bot.bot.delete_message(chat_id, message_id)
-                        for chat_id, message_id in user.state.messages_to_delete
-                    ),
-                    return_exceptions=True,
-                )
-                user.state.messages_to_delete.clear()
 
             keyboard = await bot.bot.send_message(message.chat.id, text, reply_markup=markup)
             user.keyboard_id = keyboard.message_id
