@@ -11,7 +11,7 @@ def set_bot(tele_bot: AsyncTeleBot):
     bot.bot = tele_bot
 
 
-def init(tele_bot: AsyncTeleBot, routes: list[Route]):
+def init(tele_bot: AsyncTeleBot, routes: list[Route], skip_non_private: bool = False):
     set_bot(tele_bot)
 
     for route in routes + [Route(DummyView)]:
@@ -19,15 +19,18 @@ def init(tele_bot: AsyncTeleBot, routes: list[Route]):
 
     @tele_bot.message_handler()
     async def message_handler(msg: Message):
+        if skip_non_private and msg.chat.type != 'private':
+            return
         if msg.from_user.id == tele_bot.token.split(':', 1)[0]:
             return
 
         request = Request(msg=msg)
         await ViewDispatcher(request=request).dispatch()
-        return
 
     @tele_bot.callback_query_handler(func=lambda call: True)
     async def callback_query(callback: CallbackQuery):
+        if skip_non_private and callback.message.chat.type != 'private':
+            return
+
         request = Request(callback=callback)
         await ViewDispatcher(request=request).dispatch()
-        return
