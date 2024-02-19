@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import ClassVar, Type
+from typing import Any, ClassVar, Type
 from uuid import uuid4
 
 from pydantic import BaseModel, Field
@@ -37,6 +37,7 @@ class UserModel(Model):
     last_name: str = ''
     state: UserMainState = Field(default_factory=UserMainState)
     keyboard_id: int | None = None
+    constants: dict[str, Any] = Field(default_factory=dict)
 
     manager: ClassVar[Type['UserModelManager']]
 
