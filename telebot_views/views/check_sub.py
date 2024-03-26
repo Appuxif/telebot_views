@@ -33,12 +33,13 @@ class CheckSubView(BaseView):
 
     async def redirect(self) -> Optional['BaseView']:
         r = self.route_resolver.routes_registry
+        sub_result: bool = True
         if self.ensure_subscription_chat_id:
             sub_result = await ensure_subscription(
                 self.ensure_subscription_chat_id,
                 (self.request.msg or self.request.callback).from_user.id,
                 force=True,
             )
-            if sub_result:
-                await bot.bot.send_message(self.request.message.chat.id, '✅ Подписка успешно проверена.')
+        if sub_result:
+            await bot.bot.send_message(self.request.message.chat.id, '✅ Подписка успешно проверена.')
         return r['MAIN_VIEW'].view(self.request, callback=self.callback, edit_keyboard=True)
