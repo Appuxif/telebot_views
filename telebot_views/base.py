@@ -6,6 +6,7 @@ from telebot.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMar
 from telebot_models.models import BaseModelManager, T
 
 from telebot_views import bot
+from telebot_views.bot import ParseMode
 from telebot_views.models import UserMainState, UserModel, UserStateCb
 from telebot_views.services.users import get_user_for_message
 
@@ -81,6 +82,7 @@ class BaseMessageSender:
     """Base Message Sender"""
 
     keyboard_row_width = 5
+    parse_mode: ParseMode = ParseMode.NONE
 
     def __init__(self, view: 'BaseView'):
         self.view = view
@@ -106,7 +108,13 @@ class BaseMessageSender:
 
         if self.view.edit_keyboard and user.keyboard_id is not None:
             try:
-                await bot.bot.edit_message_text(text, message.chat.id, user.keyboard_id, reply_markup=markup)
+                await bot.bot.edit_message_text(
+                    text,
+                    message.chat.id,
+                    user.keyboard_id,
+                    reply_markup=markup,
+                    parse_mode=self.parse_mode.value or None,
+                )
             except ApiTelegramException as err:
                 if 'message to edit not found' in err.description:
                     user.keyboard_id = None
@@ -125,7 +133,12 @@ class BaseMessageSender:
                     else:
                         raise
 
-            keyboard = await bot.bot.send_message(message.chat.id, text, reply_markup=markup)
+            keyboard = await bot.bot.send_message(
+                message.chat.id,
+                text,
+                reply_markup=markup,
+                parse_mode=self.parse_mode.value or None,
+            )
             user.keyboard_id = keyboard.message_id
 
     async def get_keyboard(self) -> list[list[InlineKeyboardButton]]:
