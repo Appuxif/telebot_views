@@ -231,6 +231,8 @@ class BaseView:
     view_name = ''
     edit_keyboard = True
     delete_income_messages = True
+    ignore_income_messages = False
+    ignore_income_callbacks = False
     page_size = 7
     labels = [
         'Базовый вид',
@@ -257,6 +259,9 @@ class BaseView:
 
     async def dispatch(self) -> Route:
         await self.user_states.init()
+
+        if self.request.msg and self.ignore_income_messages or self.request.callback and self.ignore_income_callbacks:
+            return self.route_resolver.routes_registry[self.view_name]
 
         await self.message_sender(self).send()
 
