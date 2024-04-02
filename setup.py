@@ -5,7 +5,7 @@ with open('README.md', 'r', encoding='utf-8') as fh:
 
 setuptools.setup(
     name='telebot_views',
-    version='0.0.16',
+    version='0.0.17b2',
     author='Appuxif',
     author_email='app@mail.com',
     description='A Python package with views for building telebot apps',
@@ -27,6 +27,7 @@ setuptools.setup(
         'telebot_views.views',
         'telebot_views.services',
         'telebot_views.decorators',
+        'telebot_views.logging',
     ],
     package_data={},
     python_requires='>=3.8',
