@@ -1,8 +1,12 @@
 from enum import Enum
+from typing import Union
 
 from telebot.async_telebot import AsyncTeleBot
 
-bot: AsyncTeleBot = AsyncTeleBot('dummy_token')
+dummy_bot: AsyncTeleBot = AsyncTeleBot('dummy_token')
+bot: AsyncTeleBot = dummy_bot
+reports_bot: AsyncTeleBot = dummy_bot
+reports_chat_id: Union[str, int] = 0
 
 
 class ParseMode(str, Enum):
