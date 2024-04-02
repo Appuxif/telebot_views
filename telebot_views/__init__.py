@@ -1,4 +1,5 @@
 from logging import getLogger
+from typing import Optional
 
 from telebot.async_telebot import AsyncTeleBot
 from telebot.types import CallbackQuery, Message
@@ -15,8 +16,20 @@ def set_bot(tele_bot: AsyncTeleBot):
     bot.bot = tele_bot
 
 
-def init(tele_bot: AsyncTeleBot, routes: list[Route], skip_non_private: bool = False):
+def set_reports_bot(tele_bot: AsyncTeleBot, reports_chat_id: int):
+    bot.reports_bot = tele_bot
+    bot.reports_chat_id = reports_chat_id
+
+
+def init(
+    tele_bot: AsyncTeleBot,
+    routes: list[Route],
+    skip_non_private: bool = False,
+    reports_bot: Optional[AsyncTeleBot] = bot.reports_bot,
+    reports_chat_id: int = bot.reports_chat_id,
+):
     set_bot(tele_bot)
+    set_reports_bot(reports_bot, reports_chat_id)
 
     for route in routes + [Route(DummyView)]:
         RouteResolver.register_route(route)
