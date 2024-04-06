@@ -1,3 +1,4 @@
+from contextlib import suppress
 from logging import getLogger
 from typing import Optional, Union
 
@@ -45,7 +46,14 @@ def init(
             request = Request(msg=msg)
             await ViewDispatcher(request=request).dispatch()
         except Exception:
-            logger.exception('message_handler error')
+            logger.exception(
+                'message_handler error\nuser_id: %s\nusername: %s\nfirst_name: %s\nlast_name: %s',
+                msg.from_user.id,
+                msg.from_user.username,
+                msg.from_user.first_name,
+                msg.from_user.last_name,
+            )
+            await bot.bot.send_message(msg.chat.id, 'Что-то пошло не так. Попробуйте еще раз или введите /start')
             raise
 
     @tele_bot.callback_query_handler(func=lambda call: True)
@@ -57,5 +65,17 @@ def init(
             request = Request(callback=callback)
             await ViewDispatcher(request=request).dispatch()
         except Exception:
-            logger.exception('callback_query error')
+            logger.exception(
+                'callback_query error\nuser_id: %s\nusername: %s\nfirst_name: %s\nlast_name: %s',
+                callback.from_user.id,
+                callback.from_user.username,
+                callback.from_user.first_name,
+                callback.from_user.last_name,
+            )
+            with suppress(Exception):
+                await bot.bot.answer_callback_query(
+                    callback.id,
+                    'Что-то пошло не так. Попробуйте еще раз или введите /start',
+                    show_alert=True,
+                )
             raise
