@@ -9,18 +9,18 @@ from telebot_views.models.links import LinkModel
 
 
 class LinksRouteResolver(RouteResolver):
-    """Route resolver to handle commands starting with /start link:<link_id>"""
+    """Route resolver to handle commands starting with /start link_<link_id>"""
 
     async def resolve(self) -> bool:
         link_id_is_valid = False
-        if self.request.message.text.startswith('/start link:'):
+        if self.request.message.text.startswith('/start link_'):
             link_id = parse_link_id(self.request.message.text)
             link_id_is_valid = bool(link_id and PyObjectId.is_valid(link_id))
         return link_id_is_valid
 
 
 class LinksView(BaseView):
-    """Отображение для перенаправления ссылок через команду /start link:<link_id>"""
+    """Отображение для перенаправления ссылок через команду /start link_<link_id>"""
 
     view_name = 'LINKS_VIEW'
     message_sender = DummyMessageSender

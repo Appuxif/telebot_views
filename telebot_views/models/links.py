@@ -18,7 +18,7 @@ class LinkModel(Model):
     manager: ClassVar[Type['LinkModelManager']]
 
     def get_bot_start_link(self) -> str:
-        return f't.me/{bot.bot.user.username}?start=link:{self.id}'
+        return f't.me/{bot.bot.user.username}?start=link_{self.id}'
 
 
 class LinkModelManager(BaseModelManager[LinkModel]):
