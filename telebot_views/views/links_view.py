@@ -37,4 +37,4 @@ class LinksView(BaseView):
 
 
 def parse_link_id(text: str) -> str:
-    return text.split(' ')[1].split(':')[1]
+    return text.split(' ')[1].split('_')[1]
