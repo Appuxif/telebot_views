@@ -22,6 +22,7 @@ class LinksRouteResolver(RouteResolver):
 class LinksView(BaseView):
     """Отображение для перенаправления ссылок через команду /start link_<link_id>"""
 
+    edit_keyboard = False
     view_name = 'LINKS_VIEW'
     message_sender = DummyMessageSender
     route_resolver = LinksRouteResolver
