@@ -5,6 +5,7 @@ from telebot_models.models import PyObjectId
 from telebot_views import RouteResolver
 from telebot_views.base import BaseView
 from telebot_views.dummy import DummyMessageSender
+from telebot_views.models import UserStateCb
 from telebot_views.models.links import LinkModel
 
 
@@ -33,7 +34,7 @@ class LinksView(BaseView):
         link: Optional[LinkModel] = await LinkModel.manager().find_one(link_id, raise_exception=False)
         r = self.route_resolver.routes_registry
         if link is None or link.callback.view_name not in r:
-            return None
+            return r['MAIN_VIEW'].view(self.request, UserStateCb(view_name='MAIN_VIEW'))
         return r[link.callback.view_name].view(self.request, link.callback)
 
 
