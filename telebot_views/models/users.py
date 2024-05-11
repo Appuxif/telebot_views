@@ -38,6 +38,7 @@ class UserModel(Model):
     state: UserMainState = Field(default_factory=UserMainState)
     keyboard_id: int | None = None
     constants: dict[str, Any] = Field(default_factory=dict)
+    is_superuser: bool = False
 
     manager: ClassVar[Type['UserModelManager']]
 
