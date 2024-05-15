@@ -35,7 +35,14 @@ class LinksView(BaseView):
         r = self.route_resolver.routes_registry
         if link is None or link.callback.view_name not in r:
             return r['MAIN_VIEW'].view(self.request, UserStateCb(view_name='MAIN_VIEW'))
-        return r[link.callback.view_name].view(self.request, link.callback, edit_keyboard=False)
+        return r[link.callback.view_name].view(
+            self.request,
+            link.callback,
+            edit_keyboard=False,
+            delete_income_messages=True,
+            ignore_income_messages=False,
+            ignore_income_callbacks=True,
+        )
 
 
 def parse_link_id(text: str) -> str:
