@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import suppress
 from logging import getLogger
 from typing import Optional, Union
@@ -9,6 +10,10 @@ from telebot_views import bot
 from telebot_views.base import Request, Route, RouteResolver
 from telebot_views.dispatcher import ViewDispatcher
 from telebot_views.dummy import DummyView
+from telebot_views.locks import Lock, init_locks_collection
+from telebot_views.models.cache import init_caches_collection
+from telebot_views.models.links import init_links_collection
+from telebot_views.models.users import init_users_collection
 
 logger = getLogger('telebot_views')
 
@@ -28,6 +33,7 @@ def init(
     skip_non_private: bool = False,
     reports_bot: Optional[AsyncTeleBot] = bot.reports_bot,
     reports_chat_id: Union[str, int] = bot.reports_chat_id,
+    loop: Optional[asyncio.BaseEventLoop] = None,
 ):
     set_bot(tele_bot)
     set_reports_bot(reports_bot, reports_chat_id)
@@ -37,6 +43,7 @@ def init(
 
     @tele_bot.message_handler()
     async def message_handler(msg: Message):
+        nonlocal skip_non_private
         try:
             if skip_non_private and msg.chat.type != 'private':
                 return
@@ -44,7 +51,8 @@ def init(
                 return
 
             request = Request(msg=msg)
-            await ViewDispatcher(request=request).dispatch()
+            async with Lock(f'user:{msg.from_user.id}', 30):
+                await ViewDispatcher(request=request).dispatch()
         except Exception:
             logger.exception(
                 'message_handler error\nuser_id: %s\nusername: %s\nfirst_name: %s\nlast_name: %s',
@@ -58,12 +66,14 @@ def init(
 
     @tele_bot.callback_query_handler(func=lambda call: True)
     async def callback_query(callback: CallbackQuery):
+        nonlocal skip_non_private
         try:
             if skip_non_private and callback.message.chat.type != 'private':
                 return
 
             request = Request(callback=callback)
-            await ViewDispatcher(request=request).dispatch()
+            async with Lock(f'user:{callback.from_user.id}', 30):
+                await ViewDispatcher(request=request).dispatch()
         except Exception:
             logger.exception(
                 'callback_query error\nuser_id: %s\nusername: %s\nfirst_name: %s\nlast_name: %s',
@@ -79,3 +89,12 @@ def init(
                     show_alert=True,
                 )
             raise
+
+    if not loop:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+    loop.create_task(init_users_collection())
+    loop.create_task(init_caches_collection())
+    loop.create_task(init_links_collection())
+    loop.create_task(init_locks_collection())
