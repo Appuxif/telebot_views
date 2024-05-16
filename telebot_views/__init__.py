@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import suppress
 from logging import getLogger
 from typing import Optional, Union
@@ -9,6 +10,9 @@ from telebot_views import bot
 from telebot_views.base import Request, Route, RouteResolver
 from telebot_views.dispatcher import ViewDispatcher
 from telebot_views.dummy import DummyView
+from telebot_views.locks import init_locks_collection
+from telebot_views.models.cache import init_caches_collection
+from telebot_views.models.users import init_users_collection
 
 logger = getLogger('telebot_views')
 
@@ -79,3 +83,7 @@ def init(
                     show_alert=True,
                 )
             raise
+
+    asyncio.create_task(init_users_collection())
+    asyncio.create_task(init_caches_collection())
+    asyncio.create_task(init_locks_collection())

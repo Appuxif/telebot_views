@@ -1,9 +1,12 @@
 from datetime import datetime, timezone
+from logging import getLogger
 from typing import Any, ClassVar, Type
 from uuid import uuid4
 
 from pydantic import BaseModel, Field
 from telebot_models.models import BaseModelManager, Model, ModelConfig
+
+logger = getLogger(__name__)
 
 
 class UserStateCb(ModelConfig, BaseModel):
@@ -60,3 +63,10 @@ def get_user_model() -> Type[UserModel]:
 def set_user_model(model: Type[UserModel]) -> None:
     global _user_model
     _user_model = model
+
+
+async def init_users_collection() -> None:
+    logger.info('Init users collection...')
+    collection = UserModelManager.get_collection()
+    await collection.create_index('user_id', unique=True, background=True)
+    logger.info('Init users collection done')
