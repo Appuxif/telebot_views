@@ -1,4 +1,5 @@
 import asyncio
+import os
 from copy import deepcopy
 from logging import Handler, LogRecord, getLogger
 from logging.config import dictConfig
@@ -6,58 +7,84 @@ from typing import Any
 
 from telebot_views import bot
 
+DEFAULT_COMMON_FORMAT = '%(asctime)s %(levelname)7s %(name)s: %(message)s'
+
+
+def configure_logging(loggers: dict[Any, Any]) -> None:
+    loggers.setdefault(
+        'TeleBot',
+        {
+            'level': LOGGER.TELEBOT_LIB_LEVEL,
+            'handlers': ['console'],
+            'propagate': True,
+        },
+    )
+    config = deepcopy(base_config)
+    config['loggers'].update(loggers)
+    dictConfig(config)
+
+
+class LOGGER:
+    """Settings for logger"""
+
+    LOG_LEVEL: str = str(os.environ.get('LOGGER_LOG_LEVEL', 'DEBUG'))
+    CONSOLE_HANDLER_LEVEL: str = str(os.environ.get('LOGGER_CONSOLE_HANDLER_LEVEL', 'DEBUG'))
+    TELEGRAM_REPORTS_LEVEL: str = str(os.environ.get('LOGGER_TELEGRAM_REPORTS_LEVEL', 'ERROR'))
+    TELEBOT_LIB_LEVEL: str = str(os.environ.get('LOGGER_TELEBOT_LIB_LEVEL', 'INFO'))
+    COMMON_FORMAT: str = str(os.environ.get('LOGGER_COMMON_FORMAT', DEFAULT_COMMON_FORMAT))
+
+
 base_config = {
     'version': 1,
     'disable_existing_loggers': True,
     'formatters': {
         'common': {
-            'format': '%(asctime)s %(levelname)7s %(name)s: %(message)s',
+            'format': LOGGER.COMMON_FORMAT,
         },
     },
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
             'formatter': 'common',
-            'level': 'DEBUG',
+            'level': LOGGER.CONSOLE_HANDLER_LEVEL,
         },
         'telegram-reports': {
             'class': 'telebot_views.log.TelegramReportsHandler',
             'formatter': 'common',
-            'level': 'ERROR',
+            'level': LOGGER.TELEGRAM_REPORTS_LEVEL,
         },
+    },
+    'root': {
+        'level': LOGGER.LOG_LEVEL,
+        'handlers': ['console', 'telegram-reports'],
+        'propagate': False,
     },
     'loggers': {
         '__main__': {
-            'level': 'DEBUG',
+            'level': LOGGER.LOG_LEVEL,
             'handlers': ['console'],
             'propagate': False,
         },
         'project': {
-            'level': 'DEBUG',
+            'level': LOGGER.LOG_LEVEL,
             'handlers': ['console', 'telegram-reports'],
             'propagate': False,
         },
         **{
             name: {
-                'level': 'DEBUG',
+                'level': LOGGER.LOG_LEVEL,
                 'handlers': ['console', 'telegram-reports'],
                 'propagate': True,
             }
-            for name in ['telebot_views']
+            for name in ['telebot_views', 'telebot_models']
         },
-        'TeleBot': {
-            'level': 'INFO',
-            'handlers': ['console'],
-            'propagate': True,
+        '': {
+            'level': LOGGER.LOG_LEVEL,
+            'handlers': ['console', 'telegram-reports'],
+            'propagate': False,
         },
     },
 }
-
-
-def configure_logging(loggers: dict[Any, Any]) -> None:
-    config = deepcopy(base_config)
-    config['loggers'].update(loggers)
-    dictConfig(config)
 
 
 class TelegramReportsHandler(Handler):

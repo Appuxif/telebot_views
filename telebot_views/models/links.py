@@ -42,3 +42,11 @@ class LinkModelManager(BaseModelManager[LinkModel]):
             return_document=ReturnDocument.AFTER,
         )
         return self.model.parse_obj(document)
+
+
+async def init_links_collection() -> None:
+    logger.info('Init links collection...')
+    collection = LinkModelManager.get_collection()
+    await collection.create_index('callback.id', background=True)
+    await collection.create_index('callback.view_name', background=True)
+    logger.info('Init links collection done')
