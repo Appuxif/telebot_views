@@ -1,10 +1,13 @@
 from datetime import datetime, timedelta
+from logging import getLogger
 from typing import Any, Callable, ClassVar, Type
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 from telebot_models.models import BaseModelManager, Model
 
 from telebot_views.utils import now_utc
+
+logger = getLogger(__name__)
 
 
 class CacheModel(Model):
@@ -55,3 +58,11 @@ def with_cache(
         return wrapper
 
     return decorator
+
+
+async def init_caches_collection() -> None:
+    logger.info('Init caches collection...')
+    collection = CacheModelManager.get_collection()
+    await collection.create_index('key', background=True)
+    await collection.create_index('valid_until', expireAfterSeconds=3600 * 24 * 30, background=True)
+    logger.info('Init caches collection done')

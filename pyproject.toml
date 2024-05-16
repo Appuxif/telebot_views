@@ -13,7 +13,6 @@ sections = 'FUTURE,STDLIB,THIRDPARTY,FIRSTPARTY,LOCALFOLDER'
 
 [tool.pylint."MASTER"]
 extension-pkg-whitelist = ['pydantic', 'tzfpy']
-load-plugins = ['pylint_pydantic']
 
 [tool.pylint."FORMAT"]
 max-line-length = 120
@@ -24,6 +23,7 @@ disable = [
     "too-many-ancestors",
     "missing-function-docstring",
     "missing-module-docstring",
+    "missing-class-docstring",
     "duplicate-code"
 ]
 
