@@ -1,10 +1,12 @@
-from datetime import datetime, timezone
+from datetime import datetime
 from logging import getLogger
 from typing import Any, ClassVar, Type
 from uuid import uuid4
 
 from pydantic import BaseModel, Field
 from telebot_models.models import BaseModelManager, Model, ModelConfig
+
+from telebot_views.utils import now_utc
 
 logger = getLogger(__name__)
 
@@ -15,7 +17,7 @@ class UserStateCb(ModelConfig, BaseModel):
     id: str = Field(default_factory=lambda: uuid4().hex)
     view_name: str = ''
     page_num: int | None = None
-    created_at: datetime | None = Field(default_factory=lambda: datetime.now(tz=timezone.utc))
+    created_at: datetime | None = Field(default_factory=now_utc)
     view_params: dict = Field(default_factory=dict)
     params: dict = Field(default_factory=dict)
 
@@ -26,6 +28,7 @@ class UserMainState(ModelConfig, BaseModel):
     view_name: str = ''
     callbacks: dict[str, UserStateCb] = Field(default_factory=dict)
     messages_to_delete: list[tuple[int, int]] = Field(default_factory=list)
+    created_at: datetime | None = Field(default_factory=now_utc)
 
     def add_message_to_delete(self, chat_id: int, message_id: int):
         self.messages_to_delete.append((chat_id, message_id))
