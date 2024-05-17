@@ -4,7 +4,7 @@ from logging import getLogger
 from typing import Optional, Union
 
 from telebot.async_telebot import AsyncTeleBot
-from telebot.types import CallbackQuery, Message
+from telebot.types import CallbackQuery, InlineQuery, Message
 
 from telebot_views import bot
 from telebot_views.base import Request, Route, RouteResolver
@@ -89,6 +89,26 @@ def init(
                     'Что-то пошло не так. Попробуйте еще раз или введите /start',
                     show_alert=True,
                 )
+            raise
+
+    @tele_bot.inline_handler(lambda x: True)
+    async def inline_query(inline: InlineQuery):
+        nonlocal skip_non_private
+        try:
+            if skip_non_private and inline.chat_type != 'private':
+                return
+
+            request = Request(inline=inline)
+            async with Lock(f'user:{inline.from_user.id}', 30):
+                await ViewDispatcher(request=request).dispatch()
+        except Exception:
+            logger.exception(
+                'callback_query error\nuser_id: %s\nusername: %s\nfirst_name: %s\nlast_name: %s',
+                inline.from_user.id,
+                inline.from_user.username,
+                inline.from_user.first_name,
+                inline.from_user.last_name,
+            )
             raise
 
     if not loop:
