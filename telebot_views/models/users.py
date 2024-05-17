@@ -37,7 +37,7 @@ class UserMainState(ModelConfig, BaseModel):
 class UserModel(Model):
     """User Model"""
 
-    user_id: int = ''
+    user_id: int = 0
     username: str = ''
     first_name: str = ''
     last_name: str = ''
