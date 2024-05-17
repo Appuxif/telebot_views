@@ -11,9 +11,10 @@ class MainRouteResolver(RouteResolver):
 
     async def resolve(self) -> bool:
         if self.view.ensure_subscription_chat_id:
+            user = await self.request.get_user()
             subscribed = await ensure_subscription(
                 self.view.ensure_subscription_chat_id,
-                (self.request.msg or self.request.callback).from_user.id,
+                user.user_id,
             )
             if not subscribed:
                 return True
