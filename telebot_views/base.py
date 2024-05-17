@@ -2,13 +2,22 @@ import asyncio
 from typing import Optional, Type
 
 from telebot.asyncio_helper import ApiTelegramException
-from telebot.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
+from telebot.types import (
+    CallbackQuery,
+    Chat,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    InlineQuery,
+    InlineQueryResultBase,
+    Message,
+)
 from telebot_models.models import BaseModelManager, T
 
 from telebot_views import bot
 from telebot_views.bot import ParseMode
 from telebot_views.models import UserMainState, UserModel, UserStateCb
 from telebot_views.services.users import get_user_for_message
+from telebot_views.utils import now_utc
 
 
 class Route:
@@ -26,19 +35,35 @@ class Request:
     Какое-то действие пользователя упакованное в детерминированный объект.
     """
 
-    def __init__(self, msg: Message | None = None, callback: CallbackQuery | None = None):
+    def __init__(
+        self, msg: Message | None = None, callback: CallbackQuery | None = None, inline: InlineQuery | None = None
+    ):
         self.msg = msg
         self.callback = callback
+        self.inline = inline
+        self.actual_field = msg or callback or inline
         self.__cached_user__: UserModel | None = None
         self.__cached_route__: Route | None = None
 
     @property
     def message(self) -> Message:
-        return self.msg or self.callback.message
+        return (
+            self.msg
+            or self.callback.message
+            or Message(
+                -1,
+                from_user=self.inline.from_user,
+                date=int(now_utc().timestamp()),
+                chat=Chat(id=self.inline.from_user.id, type=self.inline.chat_type),
+                content_type='text',
+                options={'text': self.inline.query},
+                json_string='',
+            )
+        )
 
     async def get_user(self) -> UserModel:
         if self.__cached_user__ is None:
-            self.__cached_user__ = await get_user_for_message(self.msg or self.callback)
+            self.__cached_user__ = await get_user_for_message(self.actual_field)
         return self.__cached_user__
 
     async def get_route(self) -> Route:
@@ -78,16 +103,21 @@ class RouteResolver:
         cls.routes_registry[route.view.view_name] = route
 
 
-class BaseMessageSender:
-    """Base Message Sender"""
+class EmptyMessageSender:
+    def __init__(self, view: 'BaseView'):
+        self.view = view
+
+    async def send(self) -> None:
+        raise NotImplementedError
+
+
+class KeyboardMessageSender(EmptyMessageSender):
+    """Keyboard Message Sender"""
 
     keyboard_row_width = 5
     parse_mode: ParseMode = ParseMode.NONE
 
-    def __init__(self, view: 'BaseView'):
-        self.view = view
-
-    async def send(self):
+    async def send(self) -> None:
         markup = InlineKeyboardMarkup(keyboard=await self.get_keyboard(), row_width=self.keyboard_row_width)
         user = await self.view.request.get_user()
         message = self.view.request.message
@@ -145,6 +175,28 @@ class BaseMessageSender:
         raise NotImplementedError
 
     async def get_keyboard_text(self) -> str:
+        raise NotImplementedError
+
+
+BaseMessageSender = KeyboardMessageSender  # for backward compatibility
+
+
+class InlineQueryResultSender(EmptyMessageSender):
+    cache_time: int = 60
+    is_personal: bool = True
+
+    async def send(self) -> None:
+        results, offset = await self.get_results()
+        if results:
+            await bot.bot.answer_inline_query(
+                self.view.request.inline.id,
+                results,
+                cache_time=self.cache_time,
+                is_personal=self.is_personal,
+                next_offset=offset,
+            )
+
+    async def get_results(self) -> tuple[list[InlineQueryResultBase], str | None]:
         raise NotImplementedError
 
 
@@ -246,6 +298,7 @@ class BaseView:
     delete_income_messages = True
     ignore_income_messages = False
     ignore_income_callbacks = False
+    ignore_inline_query = True
     page_size = 7
     labels = [
         'Базовый вид',
@@ -254,7 +307,8 @@ class BaseView:
     ]
 
     route_resolver = RouteResolver
-    message_sender = BaseMessageSender
+    message_sender = KeyboardMessageSender
+    inline_sender = InlineQueryResultSender
     user_states_manager = UserStatesManager
 
     def __init__(self, request: Request, callback: UserStateCb, **kwargs):
@@ -273,6 +327,7 @@ class BaseView:
     async def dispatch(self) -> Route:
         await self.user_states.init()
 
+        is_processed = False
         if (
             self.request.msg
             and not self.ignore_income_messages
@@ -280,7 +335,13 @@ class BaseView:
             and not self.ignore_income_callbacks
         ):
             await self.message_sender(self).send()
+            is_processed = True
 
+        if self.request.inline and not self.ignore_inline_query:
+            await self.inline_sender(self).send()
+            is_processed = True
+
+        if is_processed:
             redirect_view = await self.redirect()
             if redirect_view is not None:
                 return await redirect_view.dispatch()
