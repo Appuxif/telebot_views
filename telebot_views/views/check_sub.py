@@ -35,9 +35,10 @@ class CheckSubView(BaseView):
         r = self.route_resolver.routes_registry
         sub_result: bool = True
         if self.ensure_subscription_chat_id:
+            user = await self.request.get_user()
             sub_result = await ensure_subscription(
                 self.ensure_subscription_chat_id,
-                (self.request.msg or self.request.callback).from_user.id,
+                user.user_id,
                 force=True,
             )
         if sub_result:

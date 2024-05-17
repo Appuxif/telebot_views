@@ -1,9 +1,9 @@
-from telebot.types import CallbackQuery, Message
+from telebot.types import CallbackQuery, InlineQuery, Message
 
 from telebot_views.models import UserModel, get_user_model
 
 
-async def get_user_for_message(msg: Message | CallbackQuery) -> UserModel:
+async def get_user_for_message(msg: Message | CallbackQuery | InlineQuery) -> UserModel:
     to_insert = False
     model = get_user_model()
     user = await model.manager({'user_id': msg.from_user.id}).find_one(raise_exception=False)
