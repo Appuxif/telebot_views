@@ -1,13 +1,11 @@
-from datetime import timedelta
 from logging import getLogger
 
 from telebot.asyncio_helper import ApiTelegramException
 from telebot.types import ChatMemberAdministrator, ChatMemberMember, ChatMemberOwner, ChatMemberRestricted
 
 from telebot_views import bot
-from telebot_views.models.cache import CacheModel
+from telebot_views.models.cache import with_cache
 from telebot_views.services.chats import get_chat
-from telebot_views.utils import now_utc
 
 logger = getLogger(__name__)
 
@@ -43,38 +41,25 @@ async def ensure_subscription(chat_id: int, user_id: int, force: bool = False) -
     """
 
     cache_key = f'chat:{chat_id}:user:{user_id}:sub'
-    cache = await CacheModel.manager().by_key(cache_key).is_valid().find_one(raise_exception=False)
 
-    if cache:
-        logger.debug('Got cache for key `%s`', cache_key)
-    else:
-        logger.debug('Cache for key `%s` not found', cache_key)
-
-    if force:
-        logger.debug('Forcing subscription checking for `%s`', cache_key)
-
-    if not cache or force:
-        cache = cache or CacheModel(key=cache_key)
-
+    @with_cache(cache_key, 60 * 5, force=force)
+    async def _inner() -> dict[str, bool]:
         subscription_result = await check_subscription(chat_id, user_id)
-        data = {'subscription_result': subscription_result}
-
+        result = {'subscription_result': subscription_result}
         if not subscription_result:
             chat = await get_chat(chat_id)
-            data['chat_title'] = chat.title
-            data['chat_username'] = chat.username
+            result['chat_title'] = chat.title
+            result['chat_username'] = chat.username
+        return result
 
-        cache.data = data
-        cache.valid_until = now_utc() + timedelta(minutes=5)
-        await cache.update(upsert=True)
+    data = await _inner()
 
-    subscription_result = cache.data['subscription_result']
-    if not subscription_result:
-        chat_title = cache.data['chat_title']
-        chat_username = cache.data['chat_username']
+    if not data['subscription_result']:
+        chat_title = data['chat_title']
+        chat_username = data['chat_username']
         await bot.bot.send_message(
             user_id,
             f'⛔ Чтобы продолжить, нужно подписаться на канал:\n{chat_title}\n@{chat_username}',
         )
 
-    return subscription_result
+    return data['subscription_result']
