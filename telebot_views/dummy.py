@@ -1,6 +1,6 @@
-from telebot.types import InlineKeyboardButton
+from telebot.types import InlineKeyboardButton, InlineQueryResultBase
 
-from telebot_views.base import BaseMessageSender, BaseView, Route, UserStatesManager
+from telebot_views.base import BaseMessageSender, BaseView, InlineQueryResultSender, Route, UserStatesManager
 
 
 class DummyMessageSender(BaseMessageSender):
@@ -11,6 +11,11 @@ class DummyMessageSender(BaseMessageSender):
 
     async def get_keyboard_text(self) -> str:
         return ''
+
+
+class DummyInlineQueryResultSender(InlineQueryResultSender):
+    async def get_results(self) -> tuple[list[InlineQueryResultBase], str | None]:
+        return [], None
 
 
 class DummyUserStatesManager(UserStatesManager):
@@ -29,6 +34,7 @@ class DummyView(BaseView):
 
     message_sender = DummyMessageSender
     user_states_manager = DummyUserStatesManager
+    inline_sender = DummyInlineQueryResultSender
 
     async def dispatch(self) -> Route:
         await super().dispatch()
