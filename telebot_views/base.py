@@ -300,6 +300,7 @@ class BaseView:
     ignore_income_messages = False
     ignore_income_callbacks = False
     ignore_inline_query = True
+    resolve_on_redirect = False
     page_size = 7
     labels = [
         'Базовый вид',
@@ -345,7 +346,9 @@ class BaseView:
         if is_processed:
             redirect_view = await self.redirect()
             if redirect_view is not None:
-                return await redirect_view.dispatch()
+                resolver = redirect_view.route_resolver(self.request, Route(type(redirect_view)))
+                if not redirect_view.resolve_on_redirect or await resolver.resolve():
+                    return await redirect_view.dispatch()
 
             await self.callbacks.answer_callback()
             await self.user_states.set()
