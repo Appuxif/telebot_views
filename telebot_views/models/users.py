@@ -45,6 +45,7 @@ class UserModel(Model):
     keyboard_id: int | None = None
     constants: dict[str, Any] = Field(default_factory=dict)
     is_superuser: bool = False
+    is_available: bool = True
 
     manager: ClassVar[Type['UserModelManager']]
 
@@ -72,4 +73,5 @@ async def init_users_collection() -> None:
     logger.info('Init users collection...')
     collection = UserModelManager.get_collection()
     await collection.create_index('user_id', unique=True, background=True)
+    await collection.update_many({'is_available': None}, {'$set': {'is_available': True}})
     logger.info('Init users collection done')
