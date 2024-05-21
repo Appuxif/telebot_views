@@ -65,7 +65,7 @@ class Request:
 
     async def get_user(self) -> UserModel:
         if self.__cached_user__ is None:
-            self.__cached_user__ = await get_user_for_message(self.actual_field)
+            self.__cached_user__ = await get_user_for_message(self.actual_field, available=True)
         return self.__cached_user__
 
     async def get_route(self) -> Route:
