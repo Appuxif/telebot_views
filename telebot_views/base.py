@@ -373,10 +373,10 @@ class Paginator:
             total = await manager.count()
 
         page_num = self.validate_page_num(total, page_num)
+        kwargs.setdefault('sort', [('_id', 1)])
 
         return await manager.find_all(
             **kwargs,
-            sort=[('_id', 1)],
             limit=self.page_size,
             skip=(page_num - 1) * self.page_size,
         )
