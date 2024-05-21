@@ -45,6 +45,7 @@ class UserModel(Model):
     keyboard_id: int | None = None
     constants: dict[str, Any] = Field(default_factory=dict)
     is_superuser: bool = False
+    is_available: bool = True
 
     manager: ClassVar[Type['UserModelManager']]
 

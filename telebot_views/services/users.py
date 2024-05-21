@@ -1,9 +1,13 @@
+from typing import Optional
+
 from telebot.types import CallbackQuery, InlineQuery, Message
 
 from telebot_views.models import UserModel, get_user_model
 
 
-async def get_user_for_message(msg: Message | CallbackQuery | InlineQuery) -> UserModel:
+async def get_user_for_message(
+    msg: Message | CallbackQuery | InlineQuery, available: Optional[bool] = None
+) -> UserModel:
     to_insert = False
     model = get_user_model()
     user = await model.manager({'user_id': msg.from_user.id}).find_one(raise_exception=False)
@@ -16,6 +20,9 @@ async def get_user_for_message(msg: Message | CallbackQuery | InlineQuery) -> Us
     user.username = msg.from_user.username or ''
     user.first_name = msg.from_user.first_name or ''
     user.last_name = msg.from_user.last_name or ''
+
+    if available is not None:
+        user.is_available = available
 
     if to_insert:
         await user.insert()
