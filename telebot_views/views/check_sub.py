@@ -38,9 +38,15 @@ class CheckSubView(BaseView):
             user = await self.request.get_user()
             sub_result = await ensure_subscription(
                 self.ensure_subscription_chat_id,
+                self.request.message.chat.id,
                 user.user_id,
                 force=True,
+                business_connection_id=self.request.message.business_connection_id,
             )
         if sub_result:
-            await bot.bot.send_message(self.request.message.chat.id, '✅ Подписка успешно проверена.')
+            await bot.bot.send_message(
+                self.request.message.chat.id,
+                '✅ Подписка успешно проверена.',
+                business_connection_id=self.request.message.business_connection_id,
+            )
         return r['MAIN_VIEW'].view(self.request, callback=self.callback, edit_keyboard=True)
