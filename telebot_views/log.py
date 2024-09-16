@@ -54,6 +54,11 @@ base_config = {
             'formatter': 'common',
             'level': LOGGER.TELEGRAM_REPORTS_LEVEL,
         },
+        'telegram-reports-info': {
+            'class': 'telebot_views.log.TelegramReportsHandler',
+            'formatter': 'common',
+            'level': 'INFO',
+        },
     },
     'root': {
         'level': LOGGER.LOG_LEVEL,
@@ -78,6 +83,11 @@ base_config = {
                 'propagate': False,
             }
             for name in ['telebot_views', 'telebot_models']
+        },
+        'telegram-reports-info': {
+            'level': 'INFO',
+            'handlers': ['console', 'telegram-reports-info'],
+            'propagate': False,
         },
         '': {
             'level': LOGGER.OTHER_LOG_LEVEL,
