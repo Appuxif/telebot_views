@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import datetime, timedelta
 from logging import getLogger
 from typing import Any, Callable, ClassVar, Type
