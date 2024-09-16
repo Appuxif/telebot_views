@@ -1,0 +1,2 @@
+class UserFacedException(Exception):
+    pass
