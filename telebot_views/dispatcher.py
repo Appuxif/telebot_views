@@ -1,4 +1,5 @@
 from telebot_views.base import Request
+from telebot_views.exceptions import UserFacedException
 from telebot_views.models import UserStateCb
 
 
@@ -16,7 +17,10 @@ class ViewDispatcher:
         user = await self.request.get_user()
         callback = UserStateCb()
         if self.request.callback:
-            callback = user.state.callbacks[self.request.callback.data]
+            try:
+                callback = user.state.callbacks[self.request.callback.data]
+            except KeyError as err:
+                raise UserFacedException('Эта клавиатура больше неактивна') from err
         next_route = await route.view(self.request, callback, **callback.view_params).dispatch()
         user.state.view_name = next_route.value
         await user.update()
