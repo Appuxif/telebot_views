@@ -5,7 +5,7 @@ with open('README.md', 'r', encoding='utf-8') as fh:
 
 setuptools.setup(
     name='telebot_views',
-    version='1.1.1',
+    version='1.1.2',
     author='Appuxif',
     author_email='app@mail.com',
     description='A Python package with views for building telebot apps',
@@ -29,7 +29,7 @@ setuptools.setup(
         'telebot_views.decorators',
     ],
     package_data={},
-    python_requires='>=3.8',
+    python_requires='>=3.9',
     install_requires=[
         "pytelegrambotapi>=4.10.0,<5.0.0",
         "telebot_models>=1.0.0,<2.0.0",

@@ -1,17 +1,18 @@
 import asyncio
 from contextlib import suppress
+from dataclasses import dataclass
 from logging import getLogger
-from typing import Optional, Union
+from typing import Any, Optional, Union
 
 from telebot.async_telebot import AsyncTeleBot
-from telebot.types import CallbackQuery, InlineQuery, Message
+from telebot.types import BusinessConnection, CallbackQuery, InlineQuery, Message
 
 from telebot_views import bot
 from telebot_views.base import Request, Route, RouteResolver
 from telebot_views.dispatcher import ViewDispatcher
 from telebot_views.dummy import DummyView
 from telebot_views.locks import Lock, init_locks_collection
-from telebot_views.models.cache import init_caches_collection
+from telebot_views.models.cache import init_caches_collection, with_cache
 from telebot_views.models.links import init_links_collection
 from telebot_views.models.users import init_users_collection
 
@@ -34,6 +35,7 @@ def init(
     reports_bot: Optional[AsyncTeleBot] = bot.reports_bot,
     reports_chat_id: Union[str, int] = bot.reports_chat_id,
     loop: Optional[asyncio.BaseEventLoop] = None,
+    business_connection_id: Optional[int] = None,
 ):
     # pylint: disable=too-many-arguments
     set_bot(tele_bot)
@@ -42,12 +44,22 @@ def init(
     for route in routes + [Route(DummyView)]:
         RouteResolver.register_route(route)
 
-    @tele_bot.message_handler()
     async def message_handler(msg: Message):
-        nonlocal skip_non_private
+        nonlocal skip_non_private, business_connection_id
         try:
             if skip_non_private and msg.chat.type != 'private':
                 return
+
+            if msg.business_connection_id and msg.business_connection_id != business_connection_id:
+                con = await _get_business_connection(msg.business_connection_id)
+                logger.warning(
+                    'Unknown id: %s\nuser_chat_id=%s\n%s',
+                    msg.business_connection_id,
+                    con['user_chat_id'],
+                    con,
+                )
+                return
+
             if msg.from_user.id == tele_bot.token.split(':', 1)[0]:
                 return
 
@@ -62,8 +74,17 @@ def init(
                 msg.from_user.first_name,
                 msg.from_user.last_name,
             )
-            await bot.bot.send_message(msg.chat.id, 'Что-то пошло не так. Попробуйте еще раз или введите /start')
+            await bot.bot_answer_message(msg, 'Что-то пошло не так. Попробуйте еще раз или введите /start')
             raise
+
+    tele_bot.message_handler()(message_handler)
+    tele_bot.business_message_handler()(message_handler)
+
+    @tele_bot.business_connection_handler()
+    async def business_connection(con: BusinessConnection) -> None:
+        con_dict = _parse_business_connection(con)
+        getLogger('telegram-reports-info').info('New business connection:\nid=%s\n%s', con.id, con_dict)
+        return None
 
     @tele_bot.callback_query_handler(func=lambda call: True)
     async def callback_query(callback: CallbackQuery):
@@ -119,3 +140,22 @@ def init(
     loop.create_task(init_caches_collection())
     loop.create_task(init_links_collection())
     loop.create_task(init_locks_collection())
+
+
+async def _get_business_connection(business_connection_id: str) -> dict[str, Any]:
+    @with_cache(f'get_business_connection:{business_connection_id}', 3600)
+    async def inner() -> dict[str, Any]:
+        obj = await bot.bot.get_business_connection(business_connection_id)
+        return _parse_business_connection(obj)
+
+    return await inner()
+
+
+def _parse_business_connection(obj: BusinessConnection) -> dict[str, Any]:
+    return {
+        'user_chat_id': obj.user_chat_id,
+        'user_id': obj.user.id,
+        'first_name': obj.user.first_name,
+        'last_name': obj.user.last_name,
+        'username': obj.user.username,
+    }
