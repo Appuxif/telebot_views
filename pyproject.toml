@@ -11,6 +11,9 @@ known_firstparty = ['project']
 known_third_party = []
 sections = 'FUTURE,STDLIB,THIRDPARTY,FIRSTPARTY,LOCALFOLDER'
 
+[tool.pylint.main]
+load-plugins = ['pylint_pydantic']
+
 [tool.pylint."MASTER"]
 extension-pkg-whitelist = ['pydantic', 'tzfpy']
 
