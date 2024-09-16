@@ -62,7 +62,11 @@ def init(
                 msg.from_user.first_name,
                 msg.from_user.last_name,
             )
-            await bot.bot.send_message(msg.chat.id, 'Что-то пошло не так. Попробуйте еще раз или введите /start')
+            await bot.bot.send_message(
+                msg.chat.id,
+                'Что-то пошло не так. Попробуйте еще раз или введите /start',
+                business_connection_id=msg.business_connection_id,
+            )
             raise
 
     @tele_bot.callback_query_handler(func=lambda call: True)
