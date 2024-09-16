@@ -52,7 +52,7 @@ class Request:
         if self.callback:
             return self.callback.message
         if self.inline:
-            return Message(
+            message = Message(
                 self.__cached_user__.keyboard_id if self.__cached_user__ else -1,
                 from_user=self.inline.from_user,
                 date=int(now_utc().timestamp()),
@@ -61,6 +61,7 @@ class Request:
                 options={'text': self.inline.query},
                 json_string='',
             )
+            return message
         raise ValueError('Unknown type of request')
 
     async def get_user(self) -> UserModel:
@@ -120,6 +121,7 @@ class KeyboardMessageSender(EmptyMessageSender):
     parse_mode: ParseMode = ParseMode.NONE
 
     async def send(self) -> None:
+        # pylint: disable=too-many-branches
         markup = InlineKeyboardMarkup(keyboard=await self.get_keyboard(), row_width=self.keyboard_row_width)
         user = await self.view.request.get_user()
         message = self.view.request.message
@@ -127,7 +129,7 @@ class KeyboardMessageSender(EmptyMessageSender):
         if not text:
             return
 
-        if user.state.messages_to_delete:
+        if user.state.messages_to_delete and not self.view.request.message.business_connection_id:
             next_messages_to_delete = set(self.view.user_states.next_user_state.messages_to_delete)
             next_messages_to_delete -= set(user.state.messages_to_delete)
             await asyncio.gather(
@@ -146,27 +148,40 @@ class KeyboardMessageSender(EmptyMessageSender):
                     user.keyboard_id,
                     reply_markup=markup,
                     parse_mode=self.parse_mode.value or None,
+                    business_connection_id=message.business_connection_id,
                 )
             except ApiTelegramException as err:
                 if 'message to edit not found' in err.description:
                     user.keyboard_id = None
                     return await self.send()
-                raise err
+                if 'message is not modified' in err.description:
+                    pass
+                else:
+                    raise err
+
         else:
             if user.keyboard_id:
                 try:
-                    await bot.bot.delete_message(message.chat.id, user.keyboard_id)
+                    if self.view.request.message.business_connection_id:
+                        await bot.bot.edit_message_reply_markup(
+                            message.chat.id, user.keyboard_id, business_connection_id=message.business_connection_id
+                        )
+                    else:
+                        assert user.keyboard_id is not None
+                        await bot.bot.delete_message(message.chat.id, user.keyboard_id)
                 except ApiTelegramException as err:
                     if (
                         'message to delete not found' in err.description
                         or "message can't be deleted for everyone" in err.description
+                        or 'MESSAGE_EDIT_TIME_EXPIRED' in err.description
+                        or 'MESSAGE_ID_INVALID' in err.description
                     ):
                         user.keyboard_id = None
                     else:
                         raise
 
-            keyboard = await bot.bot.send_message(
-                message.chat.id,
+            keyboard = await bot.bot_answer_message(
+                message,
                 text,
                 reply_markup=markup,
                 parse_mode=self.parse_mode.value or None,
@@ -350,7 +365,7 @@ class BaseView:
             await self.callbacks.answer_callback()
             await self.user_states.set()
 
-        if self.request.msg and self.delete_income_messages:
+        if self.request.msg and self.delete_income_messages and not self.request.message.business_connection_id:
             await bot.bot.delete_message(self.request.message.chat.id, self.request.message.message_id)
 
         return self.route_resolver.routes_registry[self.view_name]

@@ -14,7 +14,9 @@ class MainRouteResolver(RouteResolver):
             user = await self.request.get_user()
             subscribed = await ensure_subscription(
                 self.view.ensure_subscription_chat_id,
+                self.request.message.chat.id,
                 user.user_id,
+                business_connection_id=self.request.message.business_connection_id,
             )
             if not subscribed:
                 return True
